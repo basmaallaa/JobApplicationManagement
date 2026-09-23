@@ -1,8 +1,12 @@
 using JobApplication.Application.DTOs;
-using JobApplication.Application.Interfaces;
+using JobApplication.Application.Features.Applications.Commands.CancelApplication;
+using JobApplication.Application.Features.Applications.Commands.CreateApplication;
+using JobApplication.Application.Features.Applications.Commands.ReviewApplication;
+using JobApplication.Application.Features.Applications.Commands.UpdateApplicationStatus;
+using JobApplication.Application.Features.Applications.Queries.GetAllApplications;
 using JobApplication.Domain.Enums;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobApplication.API.Controllers
@@ -12,28 +16,26 @@ namespace JobApplication.API.Controllers
     [Authorize]
     public class JobCandidateApplicationsController : ControllerBase
     {
-        private readonly IJobCandidateApplicationService _JobCandidateApplicationService;
+        private readonly IMediator _mediator;
 
-        public JobCandidateApplicationsController(IJobCandidateApplicationService jobApplicationService)
+        public JobCandidateApplicationsController(IMediator mediator)
         {
-            _JobCandidateApplicationService = jobApplicationService;
+            _mediator = mediator;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var applications = _JobCandidateApplicationService.GetAll();
+            var applications = await _mediator.Send(new GetAllApplicationsQuery());
             return Ok(new { applications });
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var application = _JobCandidateApplicationService.GetAll().FirstOrDefault(j => j.Id == id);
-            if (application is null) return NotFound(new
-            {
-                message = "invalid Id"
-            });
+            var applications = await _mediator.Send(new GetAllApplicationsQuery());
+            var application = applications.FirstOrDefault(j => j.Id == id);
+            if (application is null) return NotFound(new { message = "invalid Id" });
             return Ok(new { application });
         }
 
@@ -41,7 +43,7 @@ namespace JobApplication.API.Controllers
         [Authorize(Roles = nameof(UserRole.Candidate))]
         public async Task<IActionResult> Create(CreateJobCandidateApplicationDto createApplicationDto)
         {
-            var application = await _JobCandidateApplicationService.CreateAsync(createApplicationDto);
+            var application = await _mediator.Send(new CreateApplicationCommand { JobId = createApplicationDto.JobId });
             return Ok(new { application });
         }
 
@@ -49,7 +51,7 @@ namespace JobApplication.API.Controllers
         [Authorize(Roles = nameof(UserRole.Recruiter))]
         public async Task<IActionResult> Review(int id)
         {
-            var application = await _JobCandidateApplicationService.Review(id);
+            var application = await _mediator.Send(new ReviewApplicationCommand { Id = id });
             return Ok(new { application });
         }
 
@@ -57,7 +59,7 @@ namespace JobApplication.API.Controllers
         [Authorize(Roles = nameof(UserRole.Recruiter))]
         public async Task<IActionResult> UpdateStatus(int id, UpdateApplicationStatusDto dto)
         {
-            var application = await _JobCandidateApplicationService.UpdateStatus(id, dto.Status);
+            var application = await _mediator.Send(new UpdateApplicationStatusCommand { Id = id, Status = dto.Status });
             return Ok(new { application });
         }
 
@@ -65,7 +67,7 @@ namespace JobApplication.API.Controllers
         [Authorize(Roles = nameof(UserRole.Candidate))]
         public async Task<IActionResult> Cancel(int id)
         {
-            var application = await _JobCandidateApplicationService.Cancel(id);
+            var application = await _mediator.Send(new CancelApplicationCommand { Id = id });
             return Ok(new { application });
         }
     }

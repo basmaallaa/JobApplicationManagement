@@ -1,8 +1,9 @@
 using JobApplication.Application.DTOs;
-using JobApplication.Application.Interfaces;
+using JobApplication.Application.Features.Jobs.Commands.CloseJob;
+using JobApplication.Application.Features.Jobs.Commands.CreateJob;
 using JobApplication.Domain.Enums;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobApplication.API.Controllers
@@ -12,29 +13,31 @@ namespace JobApplication.API.Controllers
     [Authorize]
     public class JobsController : ControllerBase
     {
-        private readonly IJobService _JobService;
+        private readonly IMediator _mediator;
 
-        public JobsController(IJobService jobService)
+        public JobsController(IMediator mediator)
         {
-            _JobService = jobService;
+            _mediator = mediator;
         }
 
         [HttpPost]
         [Authorize(Roles = nameof(UserRole.Recruiter))]
         public async Task<IActionResult> Create(CreateJobDto createJobDto)
         {
-            var id = await _JobService.CreateAsync(createJobDto);
-            return Ok(new
+            var command = new CreateJobCommand
             {
-                id = id 
-            }); 
+                Title = createJobDto.Title,
+                Description = createJobDto.Description
+            };
+            var id = await _mediator.Send(command);
+            return Ok(new { id = id });
         }
 
         [HttpPut("{id}/close")]
         [Authorize(Roles = nameof(UserRole.Recruiter))]
         public async Task<IActionResult> Close(int id)
         {
-            await _JobService.Close(id);
+            await _mediator.Send(new CloseJobCommand { Id = id });
             return Ok(new { id = id });
         }
     }

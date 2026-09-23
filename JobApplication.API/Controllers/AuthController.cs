@@ -1,5 +1,7 @@
 using JobApplication.Application.DTOs;
-using JobApplication.Application.Interfaces;
+using JobApplication.Application.Features.Auth.Commands.Login;
+using JobApplication.Application.Features.Auth.Commands.Register;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,24 +12,37 @@ namespace JobApplication.API.Controllers
     [AllowAnonymous]
     public class AuthController : ControllerBase
     {
-        private readonly IAuthService _authService;
+        private readonly IMediator _mediator;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IMediator mediator)
         {
-            _authService = authService;
+            _mediator = mediator;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto registerDto)
         {
-            var id = await _authService.RegisterAsync(registerDto);
+            var command = new RegisterCommand
+            {
+                Email = registerDto.Email,
+                Password = registerDto.Password,
+                Name = registerDto.Name,
+                Role = registerDto.Role,
+                CvUrl = registerDto.CvUrl
+            };
+            var id = await _mediator.Send(command);
             return Ok(new { id = id });
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
-            var token = await _authService.LoginAsync(loginDto);
+            var command = new LoginCommand
+            {
+                Email = loginDto.Email,
+                Password = loginDto.Password
+            };
+            var token = await _mediator.Send(command);
             return Ok(new { token = token });
         }
     }

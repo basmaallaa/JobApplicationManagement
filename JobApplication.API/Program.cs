@@ -2,7 +2,7 @@
 using JobApplication.API.Middleware;
 using JobApplication.API.Services;
 using JobApplication.Application.Interfaces;
-using JobApplication.Application.Services;
+using JobApplication.Application.Features.Auth.Commands.Register;
 using JobApplication.Domain.Entities;
 using JobApplication.Infrastructure.Authentication;
 using JobApplication.Infrastructure.Persistence;
@@ -77,9 +77,10 @@ namespace JobApplication.API
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ICurrentUser, CurrentUser>();
             builder.Services.AddScoped<ITokenService, JwtTokenService>();
-            builder.Services.AddScoped<IAuthService, AuthService>();
-            builder.Services.AddScoped<IJobService, JobService>();
-            builder.Services.AddScoped<IJobCandidateApplicationService, JobCandidateApplicationService>();
+           
+            builder.Services.AddMediatR(cfg =>
+               cfg.RegisterServicesFromAssembly(typeof(JobApplication.Application.AssemblyReference).Assembly));
+
             builder.Services.AddScoped(typeof(IRepository<>) , typeof(Repository<>));
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
