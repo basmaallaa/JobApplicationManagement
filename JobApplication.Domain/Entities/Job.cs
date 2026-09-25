@@ -11,6 +11,7 @@ namespace JobApplication.Domain.Entities
         public int? RecruiterId { get; set; }
         public DateTime? ClosedAt { get; set; }
         public int? ClosedBy { get; set; }
+        public DateTime CreatedAt { get; set; }
 
         // A job is closed when IsActive is false.
         public void Close(int recruiterId)
@@ -23,6 +24,18 @@ namespace JobApplication.Domain.Entities
             IsActive = false;
             ClosedAt = DateTime.UtcNow;
             ClosedBy = recruiterId;
+        }
+
+        public void CloseAutomatically()
+        {
+            if (!IsActive)
+            {
+                return;
+            }
+
+            IsActive = false;
+            ClosedAt = DateTime.UtcNow;
+            ClosedBy = null;
         }
     }
 }

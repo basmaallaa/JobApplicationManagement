@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <Folder Include="Features\Applications\" />
-    <Folder Include="Features\Jobs\" />
     <Folder Include="Features\Auth\" />
   </ItemGroup>
 

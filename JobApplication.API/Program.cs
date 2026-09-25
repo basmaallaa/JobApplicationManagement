@@ -1,4 +1,6 @@
 
+using Hangfire;
+using JobApplication.API.Jobs;
 using JobApplication.API.Middleware;
 using JobApplication.API.Services;
 using JobApplication.Application.Interfaces;
@@ -44,14 +46,14 @@ namespace JobApplication.API
             builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 
             builder.Services.AddIdentityCore<User>(options =>
-                {
-                    options.User.RequireUniqueEmail = true;
-                    options.Password.RequiredLength = 6;
-                    options.Password.RequireDigit = false;
-                    options.Password.RequireLowercase = false;
-                    options.Password.RequireUppercase = false;
-                    options.Password.RequireNonAlphanumeric = false;
-                })
+            {
+                options.User.RequireUniqueEmail = true;
+                options.Password.RequiredLength = 6;
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+            })
                 .AddRoles<IdentityRole<int>>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
@@ -77,11 +79,20 @@ namespace JobApplication.API
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ICurrentUser, CurrentUser>();
             builder.Services.AddScoped<ITokenService, JwtTokenService>();
-           
+
             builder.Services.AddMediatR(cfg =>
                cfg.RegisterServicesFromAssembly(typeof(JobApplication.Application.AssemblyReference).Assembly));
 
-            builder.Services.AddScoped(typeof(IRepository<>) , typeof(Repository<>));
+            builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+            // Hangfire: stores recurring/background jobs in the same SQL Server database.
+            builder.Services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(connectionString));
+            builder.Services.AddHangfireServer();
+            builder.Services.AddScoped<CloseExpiredJobsRecurringJob>();
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi(options =>
@@ -117,7 +128,7 @@ namespace JobApplication.API
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
-                app.MapScalarApiReference(); 
+                app.MapScalarApiReference();
             }
 
             app.UseHttpsRedirection();
@@ -125,6 +136,12 @@ namespace JobApplication.API
             app.UseAuthentication();
             app.UseAuthorization();
 
+            app.UseHangfireDashboard("/hangfire");
+
+            RecurringJob.AddOrUpdate<CloseExpiredJobsRecurringJob>(
+                CloseExpiredJobsRecurringJob.JobId,
+                job => job.RunAsync(CancellationToken.None),
+                Cron.Daily());
 
             app.MapControllers();
 

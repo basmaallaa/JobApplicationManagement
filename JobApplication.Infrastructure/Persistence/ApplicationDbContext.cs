@@ -26,6 +26,10 @@ namespace JobApplication.Infrastructure.Persistence
                 .HasOne<Recruiter>()
                 .WithMany()
                 .HasForeignKey(j => j.RecruiterId);
+
+            modelBuilder.Entity<Job>()
+                .Property(j => j.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
         }
     }
 }
